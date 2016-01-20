@@ -1,12 +1,21 @@
 var express = require('express');
-var store = require('./store');
 var fortune = require('fortune');
-//var bodyParser = require('body-parser');
-var util = require('util');
+var util = require('util');;
+var nedbAdapter = require('fortune-nedb');
+var jsonapi = require('fortune-json-api');
+var bodyParser = require('body-parser');
 
 var server = express();
-//server.use(bodyParser.json()); // for parsing application/json
-//server.use(bodyParser.urlencoded({ extended: true })); // for parsing application/x-www-form-urlencoded
+server.use(bodyParser.json()); // for parsing application/json
+server.use(bodyParser.urlencoded({ extended: true })); // for parsing application/x-www-form-urlencoded
+
+var store  = fortune({
+    adapter: {
+        type: nedbAdapter,
+        options: { dbPath: __dirname + '/db' }
+    },
+    serializers: [{ type: jsonapi }]    
+});
 
 function debug(title, data){
     console.log(title + ": " + util.inspect(data, false, null));
@@ -18,6 +27,20 @@ server.use(function (req, res, next) {
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PATCH, DELETE');
     res.setHeader('Access-Control-Allow-Origin', '*');
     next();
+});
+
+store.defineType('user',{
+    mtra:       { type: String},
+    surname :   { type: String},
+    forename :  { type: String},
+    subjects :  { link: 'subject', isArray: true}
+    
+});
+
+store.defineType('subject',{
+    subjectName:    { type: String },
+    room :          { type: String },
+    description :   { type: String },
 });
 
 server.use(fortune.net.http(store));
